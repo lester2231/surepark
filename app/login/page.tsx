@@ -18,7 +18,7 @@ export default function LoginPage() {
     // Check if already logged in
     const user = localStorage.getItem("surepark_user")
     if (user) {
-      router.push("/dashboard")
+      router.push("/")
     }
   }, [router])
 
@@ -49,7 +49,7 @@ export default function LoginPage() {
 
       if (user) {
         localStorage.setItem("surepark_user", JSON.stringify(user))
-        router.push("/dashboard")
+        router.push("/")
       } else {
         setError("Invalid email or password")
       }
@@ -67,7 +67,7 @@ export default function LoginPage() {
       users.push(newUser)
       localStorage.setItem("surepark_users", JSON.stringify(users))
       localStorage.setItem("surepark_user", JSON.stringify(newUser))
-      router.push("/dashboard")
+      router.push("/")
     }
   }
 
