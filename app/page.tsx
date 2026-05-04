@@ -3,7 +3,13 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
-import { Car } from "lucide-react"
+import {
+  Car, LogOut, MapPin, Clock, CreditCard, QrCode,
+  CheckCircle2, XCircle, RefreshCw, AlertCircle,
+  ChevronDown, ChevronUp, Info, Search, CalendarCheck,
+  Wallet, ScanLine, ArrowUp, ArrowDown, Radio,
+  ShieldCheck, Zap,
+} from "lucide-react"
 
 import { ref, onValue, update } from "firebase/database"
 import { db } from "@/lib/firebase"
@@ -53,7 +59,6 @@ export default function DashboardPage() {
 
     const unsubscribe = onValue(slotsRef, (snapshot) => {
       const data = snapshot.val()
-
       console.log("🔥 Firebase data:", data)
 
       if (data) {
