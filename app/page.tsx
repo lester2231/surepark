@@ -170,14 +170,22 @@ export default function DashboardPage() {
   }
 
   const handleReserve = async (slot: ParkingSlot) => {
-    if (slot.status !== "available") return
-    // bollardUp: true = bollard is RAISED/CLOSED on reservation — car cannot enter yet
-    const patch = { status: "reserved" as const, reservedBy: user.email, reservedAt: Date.now(), bollardUp: true }
-    const updated = slots.map((s) => s.id === slot.id ? { ...s, ...patch } : s)
-    syncSlots(updated)
-    setSelectedSlot(updated.find((s) => s.id === slot.id) || null)
-    await patchApi(slot.id, patch)
+  if (!user) return
+  if (slot.status !== "available") return
+
+  const patch = {
+    status: "reserved" as const,
+    reservedBy: user.email,
+    reservedAt: Date.now(),
+    bollardUp: true,
   }
+
+  // 🔥 ONLY update Firebase (no local override)
+  await update(ref(db, `slots/slot${slot.id}`), patch)
+
+  // 🔥 OPTIONAL: keep modal working (safe)
+  setSelectedSlot({ ...slot, ...patch })
+}
 
   const handlePayment = async (slot: ParkingSlot) => {
     if (!slot.reservedBy || slot.reservedBy !== user.email) return
