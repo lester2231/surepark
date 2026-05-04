@@ -151,7 +151,7 @@ export default function DashboardPage() {
                   { step: "2", icon: <CalendarCheck size={16} className="text-green-400"/>, title: "Reserve the Slot", desc: "Click View on any Available (green) slot card, then press Reserve. The slot turns yellow (Reserved). You have 15 minutes to complete payment.", color: "bg-green-600/20 border-green-500/40" },
                   { step: "3", icon: <Wallet size={16} className="text-yellow-400"/>, title: "Pay the Ticket", desc: "Inside the slot details, select your payment method then press Pay Now. A unique QR token is generated.", color: "bg-yellow-600/20 border-yellow-500/40" },
                   { step: "4", icon: <Zap size={16} className="text-orange-400"/>, title: "Control the Bollard", desc: "After payment, the Bollard Control panel unlocks. Press Lower Bollard to allow your vehicle to enter the slot.", color: "bg-orange-600/20 border-orange-500/40" },
-                  { step: "5", icon: <Radio size={16} className="text-purple-400"/>, title: "Car Detected — Occupied", desc: "Once your vehicle enters the slot, the ultrasonic sensor detects it and automatically updates the status to Occupied (red).", color: "bg-purple-600/20 border-purple-500/40" },
+                  { step: "5", icon: <Radio size={16} className="text-purple-400"/>, title: "Sensor Activation", desc: "The ultrasonic sensor activates ONLY after payment is confirmed AND the bollard is lowered to the ground.", color: "bg-purple-600/20 border-purple-500/40" },
                   { step: "6", icon: <Car size={16} className="text-slate-400"/>, title: "Exit & Free the Slot", desc: "When your vehicle leaves, the sensor detects the empty space and automatically resets the slot back to Available.", color: "bg-slate-600/30 border-slate-500/40" },
                 ].map((s) => (
                   <div key={s.step} className="flex gap-3 bg-[#1e293b]/60 rounded-lg p-4 border border-slate-700/50">
@@ -164,8 +164,8 @@ export default function DashboardPage() {
                 ))}
               </div>
               <div className="mt-4 pt-3 border-t border-slate-700/60 flex flex-wrap gap-x-6 gap-y-1.5">
-                <div className="flex items-center gap-2 text-xs text-slate-400"><span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" /> Green — Available</div>
-                <div className="flex items-center gap-2 text-xs text-slate-400"><span className="w-2.5 h-2.5 rounded-full bg-[#eab308]" /> Yellow — Reserved</div>
+                <div className="flex items-center gap-2 text-xs text-slate-400 font-sans"><span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" /> Green — Available</div>
+                <div className="flex items-center gap-2 text-xs text-slate-400 font-sans"><span className="w-2.5 h-2.5 rounded-full bg-[#eab308]" /> Yellow — Reserved</div>
               </div>
             </div>
           )}
@@ -240,7 +240,7 @@ export default function DashboardPage() {
           {showMap && <div className="rounded-2xl overflow-hidden border border-slate-800 shadow-2xl"><ParkingMap slots={slots} onLocationClick={setSelectedLocation} selectedLocation={selectedLocation} /></div>}
         </div>
 
-        {/* Modal with Bollard Control */}
+        {/* Modal with Bollard-Triggered Sensor Logic */}
         {selectedSlot && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
             <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
@@ -266,20 +266,39 @@ export default function DashboardPage() {
                 )}
 
                 {selectedSlot.paid && (
-                  <div className="bg-[#0f172a] border border-slate-700 rounded-xl p-5 space-y-5">
-                    <div className="flex justify-between items-center">
-                      <h4 className="text-sm font-bold text-white font-sans"><Zap size={16} className="inline mr-2 text-yellow-400"/> Bollard Control</h4>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-sans ${selectedSlot.bollardUp ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>{selectedSlot.bollardUp ? 'RAISED' : 'LOWERED'}</span>
+                  <div className="space-y-4">
+                    {/* Bollard Control Section */}
+                    <div className="bg-[#0f172a] border border-slate-700 rounded-xl p-5 space-y-5">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-sm font-bold text-white font-sans"><Zap size={16} className="inline mr-2 text-yellow-400"/> Bollard Control</h4>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-sans ${selectedSlot.bollardUp ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>{selectedSlot.bollardUp ? 'RAISED' : 'LOWERED'}</span>
+                      </div>
+
+                      <div className="flex justify-center items-end h-24 relative overflow-hidden">
+                        <div className={`w-10 rounded-t-lg transition-all duration-700 shadow-2xl ${selectedSlot.bollardUp ? 'h-16 bg-gradient-to-t from-red-800 to-red-500' : 'h-4 bg-gradient-to-t from-green-800 to-green-500'}`}/>
+                        <div className="w-16 h-3 bg-slate-700 rounded absolute translate-y-3"/>
+                      </div>
+
+                      <button onClick={() => handleBollardToggle(selectedSlot)} className={`w-full py-4 rounded-xl font-bold text-xs tracking-widest uppercase transition-all shadow-lg font-sans ${selectedSlot.bollardUp ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500'}`}>
+                        {selectedSlot.bollardUp ? "Lower Bollard" : "Raise Bollard"}
+                      </button>
                     </div>
 
-                    <div className="flex justify-center items-end h-24 relative overflow-hidden">
-                       <div className={`w-10 rounded-t-lg transition-all duration-700 shadow-2xl ${selectedSlot.bollardUp ? 'h-16 bg-gradient-to-t from-red-800 to-red-500' : 'h-4 bg-gradient-to-t from-green-800 to-green-500'}`}/>
-                       <div className="w-16 h-3 bg-slate-700 rounded absolute translate-y-3"/>
+                    {/* Sensor Logic Card: Only shows "Active" if paid AND bollard is lowered */}
+                    <div className={`p-4 rounded-xl border transition-all ${!selectedSlot.bollardUp ? 'bg-blue-900/20 border-blue-800 animate-pulse' : 'bg-slate-800/40 border-slate-700 opacity-60'}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Radio className={`w-4 h-4 ${!selectedSlot.bollardUp ? 'text-blue-400' : 'text-slate-500'}`} />
+                        <h4 className={`font-semibold text-sm font-sans ${!selectedSlot.bollardUp ? 'text-white' : 'text-slate-500'}`}>HC-SR04 Sensor</h4>
+                        <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full border font-sans ${!selectedSlot.bollardUp ? 'text-blue-400 border-blue-800 bg-blue-900/40' : 'text-slate-500 border-slate-700'}`}>
+                          {!selectedSlot.bollardUp ? 'MONITORING' : 'STANDBY'}
+                        </span>
+                      </div>
+                      <p className="text-slate-400 text-xs leading-relaxed font-sans">
+                        {!selectedSlot.bollardUp 
+                          ? "The ultrasonic sensor is now active. Drive your vehicle into the slot to complete check-in." 
+                          : "Sensor is currently in standby. Lower the bollard to activate vehicle detection."}
+                      </p>
                     </div>
-
-                    <button onClick={() => handleBollardToggle(selectedSlot)} className={`w-full py-4 rounded-xl font-bold text-xs tracking-widest uppercase transition-all shadow-lg font-sans ${selectedSlot.bollardUp ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500'}`}>
-                      {selectedSlot.bollardUp ? "Lower Bollard" : "Raise Bollard"}
-                    </button>
                   </div>
                 )}
 
