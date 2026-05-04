@@ -34,7 +34,7 @@ const DEFAULT_SLOTS: ParkingSlot[] = [
   { id: 1, name: "Slot 1", location: "Session Road", price: 50, status: "available" },
   { id: 2, name: "Slot 2", location: "Harrison Road", price: 45, status: "available" },
   { id: 3, name: "Slot 3", location: "SM Baguio", price: 60, status: "available" },
-  { id: 4, name: "Slot 4", location: "Cedar Peak", price: 40, status: "available" },
+  { id: 4, name: "Slot 4", location: "Assumption Road", price: 40, status: "available" },
   { id: 5, name: "Slot 5", location: "Mabini", price: 55, status: "available" },
 ]
 
