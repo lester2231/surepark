@@ -168,8 +168,6 @@ export default function DashboardPage() {
               <div className="mt-4 pt-3 border-t border-slate-700/60 flex flex-wrap gap-x-6 gap-y-1.5">
                 <div className="flex items-center gap-2 text-xs text-slate-400"><span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" /> Green — Available</div>
                 <div className="flex items-center gap-2 text-xs text-slate-400"><span className="w-2.5 h-2.5 rounded-full bg-[#eab308]" /> Yellow — Reserved</div>
-                <div className="flex items-center gap-2 text-xs text-slate-400"><span className="w-2.5 h-2.5 rounded-full bg-[#ef4444]" /> Red — Occupied</div>
-              </div>
             </div>
           )}
         </div>
