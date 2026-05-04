@@ -18,7 +18,7 @@ export default function LoginPage() {
     // Check if already logged in
     const user = localStorage.getItem("surepark_user")
     if (user) {
-      router.push("/")
+      router.push("/dashboard")
     }
   }, [router])
 
