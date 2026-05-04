@@ -4,11 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import {
-  Car, LogOut, MapPin, Clock, CreditCard, QrCode,
-  CheckCircle2, XCircle, RefreshCw, AlertCircle,
-  ChevronDown, ChevronUp, Info, Search, CalendarCheck,
-  Wallet, ScanLine, ArrowUp, ArrowDown, Radio,
-  ShieldCheck, Zap,
+  Car, MapPin
 } from "lucide-react"
 
 import { ref, onValue, update } from "firebase/database"
@@ -24,9 +20,6 @@ interface ParkingSlot {
   status: "available" | "reserved" | "occupied"
   reservedBy?: string
   reservedAt?: number
-  paid?: boolean
-  activeQrToken?: string
-  checkedIn?: boolean
   bollardUp?: boolean
 }
 
@@ -45,7 +38,18 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [slots, setSlots] = useState<ParkingSlot[]>([])
 
-  // 🔥 REAL-TIME FIREBASE SYNC
+  // 🔥 Convert Firebase object → array
+  const formatSlots = (raw: any): ParkingSlot[] => {
+    return Object.entries(raw || {}).map(([key, value]: any, index) => ({
+      id: index + 1,
+      name: `Slot ${index + 1}`,
+      location: LOCATIONS[index],
+      price: DEFAULT_SLOTS[index].price,
+      ...value,
+    }))
+  }
+
+  // 🔥 REAL-TIME FIREBASE SYNC (MAIN FIX)
   useEffect(() => {
     const userData = localStorage.getItem("surepark_user")
     if (!userData) {
@@ -59,28 +63,16 @@ export default function DashboardPage() {
 
     const unsubscribe = onValue(slotsRef, (snapshot) => {
       const data = snapshot.val()
-      console.log("🔥 Firebase data:", data)
-
       if (data) {
-        const formatted = Object.entries(data).map(([key, value]: any, index) => ({
-          id: index + 1,
-          name: `Slot ${index + 1}`,
-          location: LOCATIONS[index],
-          price: DEFAULT_SLOTS[index].price,
-          ...value,
-        }))
-
-        setSlots(formatted)
+        setSlots(formatSlots(data))
       }
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [router])
 
-  // 🔥 RESERVE
+  // 🔥 RESERVE (DIRECT FIREBASE WRITE)
   const handleReserve = async (slot: ParkingSlot) => {
-    if (slot.status !== "available") return
-
     await update(ref(db, `slots/slot${slot.id}`), {
       status: "reserved",
       reservedBy: user.email,
@@ -89,17 +81,7 @@ export default function DashboardPage() {
     })
   }
 
-  // 🔥 PAYMENT
-  const handlePayment = async (slot: ParkingSlot) => {
-    const qrToken = `SP-${slot.id}-${Date.now().toString(36).toUpperCase()}`
-
-    await update(ref(db, `slots/slot${slot.id}`), {
-      paid: true,
-      activeQrToken: qrToken,
-    })
-  }
-
-  // 🔥 BOLLARD
+  // 🔥 BOLLARD CONTROL (DIRECT FIREBASE WRITE)
   const handleBollardToggle = async (slot: ParkingSlot) => {
     await update(ref(db, `slots/slot${slot.id}`), {
       bollardUp: !slot.bollardUp,
@@ -133,15 +115,6 @@ export default function DashboardPage() {
                   className="bg-blue-600 px-3 py-1 rounded text-white"
                 >
                   Reserve
-                </button>
-              )}
-
-              {slot.status === "reserved" && (
-                <button
-                  onClick={() => handlePayment(slot)}
-                  className="bg-yellow-600 px-3 py-1 rounded text-white"
-                >
-                  Pay
                 </button>
               )}
 
