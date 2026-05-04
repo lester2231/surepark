@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import {
-  Car, LogOut, MapPin, Clock, QrCode, CheckCircle2,
+  Car, LogOut, MapPin, Clock, CreditCard, QrCode, CheckCircle2,
   XCircle, RefreshCw, AlertCircle, ChevronDown, ChevronUp, Info,
   Search, CalendarCheck, Wallet, Zap, ArrowUp, ArrowDown, Radio, ShieldCheck
 } from "lucide-react"
@@ -34,7 +34,7 @@ const DEFAULT_SLOTS: ParkingSlot[] = [
   { id: 1, name: "Slot 1", location: "Session Road", price: 50, status: "available" },
   { id: 2, name: "Slot 2", location: "Harrison Road", price: 45, status: "available" },
   { id: 3, name: "Slot 3", location: "SM Baguio", price: 60, status: "available" },
-  { id: 4, name: "Slot 4", location: "Assumption Road", price: 40, status: "available" },
+  { id: 4, name: "Slot 4", location: "Cedar Peak", price: 40, status: "available" },
   { id: 5, name: "Slot 5", location: "Mabini", price: 55, status: "available" },
 ]
 
@@ -71,7 +71,6 @@ export default function DashboardPage() {
   }, [router, selectedSlot?.id])
 
   const handleReset = async () => {
-    // FIX: Using Record<string, any> to avoid property index errors
     const resetData: Record<string, any> = {};
     [1, 2, 3, 4, 5].forEach((id) => {
       resetData[`slot${id}`] = { status: "available", bollardUp: true, paid: false, reservedBy: null }
@@ -80,11 +79,10 @@ export default function DashboardPage() {
   }
 
   const handleBollardToggle = async (slot: ParkingSlot) => {
-    if (slot.status === 'occupied') return; // Safety lock logic
+    if (slot.status === 'occupied') return;
     await update(ref(db, `slots/slot${slot.id}`), { bollardUp: !slot.bollardUp })
   }
 
-  // Statistics calculation for horizontal cards
   const filteredSlots = selectedLocation === "All" ? slots : slots.filter((s) => s.location === selectedLocation)
   const stats = {
     available: filteredSlots.filter((s) => s.status === "available").length,
@@ -97,7 +95,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#0f172a] p-4 md:p-8 text-white font-sans">
       <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
+        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
@@ -114,29 +112,34 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Tips Section */}
+        {/* Tips Section with BIGGER ICONS */}
         <div className="mb-8 rounded-xl border border-blue-900/50 bg-[#1e293b]/40 overflow-hidden shadow-lg">
-          <button onClick={() => setShowTips(!showTips)} className="w-full flex items-center justify-between px-5 py-3 hover:bg-blue-900/10 transition-colors">
-            <div className="flex items-center gap-2 text-blue-400 font-bold text-xs uppercase tracking-wider">
-              <Info size={16}/> How to Use SurePark
+          <button onClick={() => setShowTips(!showTips)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-blue-900/10 transition-colors">
+            <div className="flex items-center gap-3 text-blue-400 font-bold text-sm uppercase tracking-wider">
+              <Info size={20}/> How to Use SurePark
             </div>
-            {showTips ? <ChevronUp size={16}/> : <ChevronDown size={16}/>}
+            {showTips ? <ChevronUp size={20}/> : <ChevronDown size={20}/>}
           </button>
           {showTips && (
-            <div className="px-5 pb-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="px-5 pb-6 grid grid-cols-1 md:grid-cols-3 gap-5">
                {[
-                  { id: 1, title: "Find a Slot", desc: "Use the filter or map pins. Green means available.", icon: <Search size={14}/> },
-                  { id: 2, title: "Reserve the Slot", desc: "Click Reserve. You have 15 minutes to pay.", icon: <CalendarCheck size={14}/> },
-                  { id: 3, title: "Pay the Ticket", desc: "Pay via GCash or Maya to generate a token.", icon: <Wallet size={14}/> },
-                  { id: 4, title: "Control the Bollard", desc: "Lower the bollard to enter the slot.", icon: <Zap size={14}/> },
-                  { id: 5, title: "Car Detected", desc: "Sensor updates status to Occupied automatically.", icon: <Radio size={14}/> },
-                  { id: 6, title: "Exit & Free", desc: "When you leave, the slot resets to Available.", icon: <Car size={14}/> },
+                  { id: 1, title: "Find a Slot", desc: "Use the filter or map pins. Green means available.", icon: <Search size={24}/> },
+                  { id: 2, title: "Reserve the Slot", desc: "Click Reserve. You have 15 minutes to pay.", icon: <CalendarCheck size={24}/> },
+                  { id: 3, title: "Pay the Ticket", desc: "Pay via GCash or Maya to generate a token.", icon: <Wallet size={24}/> },
+                  { id: 4, title: "Control the Bollard", desc: "Lower the bollard to enter the slot.", icon: <Zap size={24}/> },
+                  { id: 5, title: "Car Detected", desc: "Sensor updates status to Occupied automatically.", icon: <Radio size={24}/> },
+                  { id: 6, title: "Exit & Free", desc: "When you leave, the slot resets to Available.", icon: <Car size={24}/> },
                 ].map((step) => (
-                  <div key={step.id} className="bg-[#0f172a]/50 p-4 rounded-lg border border-slate-700/50 flex gap-3">
-                    <div className="w-6 h-6 rounded-full bg-blue-600/20 flex items-center justify-center text-blue-400 text-[10px] font-bold shrink-0">{step.id}</div>
+                  <div key={step.id} className="bg-[#0f172a]/50 p-5 rounded-lg border border-slate-700/50 flex items-start gap-4 hover:border-blue-500/30 transition-all">
+                    <div className="w-12 h-12 rounded-xl bg-blue-600/20 flex items-center justify-center text-blue-400 shrink-0 shadow-inner">
+                      {step.icon}
+                    </div>
                     <div>
-                      <div className="flex items-center gap-1.5 mb-1 text-white text-xs font-bold">{step.icon} {step.title}</div>
-                      <p className="text-slate-400 text-[10px] leading-relaxed">{step.desc}</p>
+                      <div className="flex items-center gap-2 mb-1.5 text-white text-sm font-bold">
+                        <span className="text-[10px] text-blue-500 bg-blue-500/10 px-1.5 rounded-md border border-blue-500/20">{step.id}</span>
+                        {step.title}
+                      </div>
+                      <p className="text-slate-400 text-xs leading-relaxed">{step.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -144,7 +147,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Stats Section */}
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="bg-green-900/20 border border-green-500/30 p-6 rounded-xl flex items-center justify-between">
             <div><p className="text-xs font-bold text-green-400 uppercase mb-1">Available</p><p className="text-4xl font-bold">{stats.available}</p></div>
@@ -160,10 +163,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Slot Grid Section */}
+        {/* Slot Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {filteredSlots.map((slot) => (
-            <div key={slot.id} className={`bg-[#1e293b]/50 border rounded-2xl p-6 transition-all border-slate-700/50 shadow-sm hover:shadow-md`}>
+            <div key={slot.id} className="bg-[#1e293b]/50 border border-slate-700/50 rounded-2xl p-6 hover:shadow-lg transition-all">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-xl font-bold">{slot.name}</h3>
                 <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
@@ -178,12 +181,12 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Map Placeholder */}
+        {/* Map */}
         <div className="rounded-3xl overflow-hidden border border-slate-800 shadow-2xl mb-12">
           <ParkingMap slots={slots} onLocationClick={setSelectedLocation} selectedLocation={selectedLocation} />
         </div>
 
-        {/* Detail Modal with Safety Lock */}
+        {/* Details Modal */}
         {selectedSlot && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
             <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
