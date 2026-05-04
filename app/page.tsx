@@ -1,5 +1,6 @@
 "use client"
-
+import { ref, onValue, update } from "firebase/database"
+import { db } from "@/lib/firebase"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
