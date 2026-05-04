@@ -17,7 +17,7 @@ const ParkingMap = dynamic(() => import("@/components/ParkingMap"), {
     <div className="w-full h-[440px] rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-sans">
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-400 text-sm font-sans">Loading map...</p>
+        <p className="text-slate-400 text-sm">Loading map...</p>
       </div>
     </div>
   ),
@@ -151,7 +151,7 @@ export default function DashboardPage() {
                   { step: "2", icon: <CalendarCheck size={16} className="text-green-400"/>, title: "Reserve the Slot", desc: "Click View on any Available (green) slot card, then press Reserve. The slot turns yellow (Reserved). You have 15 minutes to complete payment.", color: "bg-green-600/20 border-green-500/40" },
                   { step: "3", icon: <Wallet size={16} className="text-yellow-400"/>, title: "Pay the Ticket", desc: "Inside the slot details, select your payment method then press Pay Now. A unique QR token is generated.", color: "bg-yellow-600/20 border-yellow-500/40" },
                   { step: "4", icon: <Zap size={16} className="text-orange-400"/>, title: "Control the Bollard", desc: "After payment, the Bollard Control panel unlocks. Press Lower Bollard to allow your vehicle to enter the slot.", color: "bg-orange-600/20 border-orange-500/40" },
-                  { step: "5", icon: <Radio size={16} className="text-purple-400"/>, title: "Sensor Activation", desc: "The ultrasonic sensor activates only when the bollard is lowered. It then monitors the space to detect your vehicle.", color: "bg-purple-600/20 border-purple-500/40" },
+                  { step: "5", icon: <Radio size={16} className="text-purple-400"/>, title: "Car Detected — Occupied", desc: "Once your vehicle enters the slot, the ultrasonic sensor detects it and automatically updates the status to Occupied (red).", color: "bg-purple-600/20 border-purple-500/40" },
                   { step: "6", icon: <Car size={16} className="text-slate-400"/>, title: "Exit & Free the Slot", desc: "When your vehicle leaves, the sensor detects the empty space and automatically resets the slot back to Available.", color: "bg-slate-600/30 border-slate-500/40" },
                 ].map((s) => (
                   <div key={s.step} className="flex gap-3 bg-[#1e293b]/60 rounded-lg p-4 border border-slate-700/50">
@@ -164,8 +164,8 @@ export default function DashboardPage() {
                 ))}
               </div>
               <div className="mt-4 pt-3 border-t border-slate-700/60 flex flex-wrap gap-x-6 gap-y-1.5">
-                <div className="flex items-center gap-2 text-xs text-slate-400 font-sans"><span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" /> Green — Available</div>
-                <div className="flex items-center gap-2 text-xs text-slate-400 font-sans"><span className="w-2.5 h-2.5 rounded-full bg-[#eab308]" /> Yellow — Reserved</div>
+                <div className="flex items-center gap-2 text-xs text-slate-400"><span className="w-2.5 h-2.5 rounded-full bg-[#22c55e]" /> Green — Available</div>
+                <div className="flex items-center gap-2 text-xs text-slate-400"><span className="w-2.5 h-2.5 rounded-full bg-[#eab308]" /> Yellow — Reserved</div>
               </div>
             </div>
           )}
@@ -192,9 +192,9 @@ export default function DashboardPage() {
           <div className="bg-blue-900/30 border border-blue-700 rounded-xl p-6 mb-8 shadow-lg">
             <div className="flex items-center gap-2 mb-4 font-bold text-lg text-blue-300 font-sans"><AlertCircle size={20}/> My Active Reservations</div>
             {myReservations.map(s => (
-              <div key={s.id} className="bg-slate-800/80 p-4 rounded-lg flex justify-between items-center border border-slate-700 mb-2 font-sans">
-                <div><p className="font-bold">{s.name} — {s.location}</p><p className="text-xs text-yellow-400 font-medium">Auto-release in: {getTimeRemaining(s.reservedAt!)}</p></div>
-                <button onClick={() => setSelectedSlot(s)} className="bg-blue-600 px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-blue-500">Manage</button>
+              <div key={s.id} className="bg-slate-800/80 p-4 rounded-lg flex justify-between items-center border border-slate-700 mb-2">
+                <div><p className="font-bold">{s.name} — {s.location}</p><p className="text-xs text-yellow-400 font-medium font-sans">Auto-release in: {getTimeRemaining(s.reservedAt!)}</p></div>
+                <button onClick={() => setSelectedSlot(s)} className="bg-blue-600 px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-blue-500 font-sans">Manage</button>
               </div>
             ))}
           </div>
@@ -216,7 +216,7 @@ export default function DashboardPage() {
         {/* Slots Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {filteredSlots.map((slot) => (
-            <div key={slot.id} className={`rounded-xl p-6 border transition-all font-sans ${slot.status === 'available' ? 'bg-[#1e293b]/60 border-green-700/60' : 'bg-[#1e293b] border-slate-700'}`}>
+            <div key={slot.id} className={`rounded-xl p-6 border transition-all ${slot.status === 'available' ? 'bg-[#1e293b]/60 border-green-700/60' : 'bg-[#1e293b] border-slate-700'}`}>
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-xl font-bold tracking-tight">{slot.name}</h3>
                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${slot.status === 'available' ? 'bg-green-500/20 text-green-400 border border-green-700/50' : slot.status === 'reserved' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-700/50' : 'bg-red-500/20 text-red-400 border border-red-700/50'}`}>{slot.status}</span>
@@ -234,76 +234,56 @@ export default function DashboardPage() {
         {/* Map */}
         <div className="mb-12">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="font-bold text-lg flex items-center gap-2 font-sans"><MapPin className="text-blue-500"/> Interactive Map</h2>
-            <button onClick={() => setShowMap(!showMap)} className="text-sm font-bold text-slate-400 hover:text-white uppercase tracking-widest font-sans">{showMap ? 'Hide Map' : 'Show Map'}</button>
+            <h2 className="font-bold text-lg flex items-center gap-2"><MapPin className="text-blue-500"/> Interactive Map</h2>
+            <button onClick={() => setShowMap(!showMap)} className="text-sm font-bold text-slate-400 hover:text-white uppercase tracking-widest">{showMap ? 'Hide Map' : 'Show Map'}</button>
           </div>
           {showMap && <div className="rounded-2xl overflow-hidden border border-slate-800 shadow-2xl"><ParkingMap slots={slots} onLocationClick={setSelectedLocation} selectedLocation={selectedLocation} /></div>}
         </div>
 
-        {/* Modal with Bollard-Triggered Sensor Logic */}
+        {/* Modal with Bollard Control */}
         {selectedSlot && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
             <div className="bg-[#1e293b] border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
               <div className="flex justify-between items-start mb-6">
-                <div className="font-sans">
-                  <h2 className="text-2xl font-bold">{selectedSlot.name}</h2>
-                  <p className="text-slate-400 text-sm">{selectedSlot.location}</p>
-                </div>
+                <div><h2 className="text-2xl font-bold">{selectedSlot.name}</h2><p className="text-slate-400 text-sm font-sans">{selectedSlot.location}</p></div>
                 <button onClick={() => setSelectedSlot(null)} className="text-slate-500 hover:text-white"><XCircle size={28}/></button>
               </div>
 
-              <div className="space-y-4 font-sans">
+              <div className="space-y-4">
                 <div className="bg-[#0f172a] p-4 rounded-xl border border-slate-700">
-                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Status</p>
+                  <p className="text-[10px] text-slate-500 uppercase font-bold mb-1 font-sans">Status</p>
                   <span className={`text-sm font-bold uppercase ${selectedSlot.status === 'available' ? 'text-green-400' : 'text-yellow-400'}`}>{selectedSlot.status}</span>
                 </div>
 
                 {selectedSlot.reservedBy === user.email && !selectedSlot.paid && (
                   <div className="bg-[#1e3a8a]/20 border border-blue-700/50 p-5 rounded-xl space-y-4">
-                    <p className="text-sm font-bold flex items-center gap-2 text-blue-300"><CreditCard size={18}/> Payment Method</p>
-                    <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 font-bold text-sm">
+                    <p className="text-sm font-bold flex items-center gap-2 text-blue-300 font-sans"><CreditCard size={18}/> Select Payment Method</p>
+                    <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 font-bold text-sm font-sans">
                       <option value="GCash">GCash</option><option value="Maya">Maya</option><option value="Card">Credit Card</option>
                     </select>
-                    <button onClick={() => handlePayment(selectedSlot)} className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold uppercase text-xs tracking-widest">Pay ₱{selectedSlot.price}.00</button>
+                    <button onClick={() => handlePayment(selectedSlot)} className="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold uppercase text-xs tracking-widest font-sans">Pay ₱{selectedSlot.price}.00</button>
                   </div>
                 )}
 
                 {selectedSlot.paid && (
-                  <div className="space-y-4">
-                    {/* Bollard Control Panel */}
-                    <div className="bg-[#0f172a] border border-slate-700 rounded-xl p-5 space-y-5">
-                      <div className="flex justify-between items-center">
-                        <h4 className="text-sm font-bold text-white"><Zap size={16} className="inline mr-2 text-yellow-400"/> Bollard Control</h4>
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${selectedSlot.bollardUp ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>{selectedSlot.bollardUp ? 'RAISED' : 'LOWERED'}</span>
-                      </div>
-                      <div className="flex justify-center items-end h-24 relative overflow-hidden">
-                        <div className={`w-10 rounded-t-lg transition-all duration-700 shadow-2xl ${selectedSlot.bollardUp ? 'h-16 bg-red-600' : 'h-4 bg-green-600'}`}/>
-                        <div className="w-16 h-3 bg-slate-700 rounded absolute translate-y-3"/>
-                      </div>
-                      <button onClick={() => handleBollardToggle(selectedSlot)} className={`w-full py-4 rounded-xl font-bold text-xs tracking-widest uppercase shadow-lg transition-all ${selectedSlot.bollardUp ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500'}`}>
-                        {selectedSlot.bollardUp ? "Lower Bollard" : "Raise Bollard"}
-                      </button>
+                  <div className="bg-[#0f172a] border border-slate-700 rounded-xl p-5 space-y-5">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm font-bold text-white font-sans"><Zap size={16} className="inline mr-2 text-yellow-400"/> Bollard Control</h4>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold font-sans ${selectedSlot.bollardUp ? 'bg-red-500/20 text-red-500' : 'bg-green-500/20 text-green-500'}`}>{selectedSlot.bollardUp ? 'RAISED' : 'LOWERED'}</span>
                     </div>
 
-                    {/* Sensor Status - Logic restricted to Bollard state */}
-                    <div className={`p-4 rounded-xl border transition-all ${!selectedSlot.bollardUp ? 'bg-blue-900/20 border-blue-800' : 'bg-slate-800/40 border-slate-700 opacity-60'}`}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Radio className={`w-4 h-4 ${!selectedSlot.bollardUp ? 'text-blue-400 animate-pulse' : 'text-slate-500'}`} />
-                        <h4 className={`font-semibold text-sm ${!selectedSlot.bollardUp ? 'text-white' : 'text-slate-500'}`}>Parking Sensor</h4>
-                        <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full border ${!selectedSlot.bollardUp ? 'text-blue-400 border-blue-800 bg-blue-900/40' : 'text-slate-500 border-slate-700'}`}>
-                          {!selectedSlot.bollardUp ? 'Live Detection ON' : 'Paused (Bollard Up)'}
-                        </span>
-                      </div>
-                      <p className="text-slate-400 text-xs leading-relaxed">
-                        {!selectedSlot.bollardUp 
-                          ? "Bollard is lowered. The HC-SR04 sensor is now active and monitoring for your vehicle's arrival."
-                          : "Sensor is inactive while bollard is raised to save energy and prevent false triggers."}
-                      </p>
+                    <div className="flex justify-center items-end h-24 relative overflow-hidden">
+                       <div className={`w-10 rounded-t-lg transition-all duration-700 shadow-2xl ${selectedSlot.bollardUp ? 'h-16 bg-gradient-to-t from-red-800 to-red-500' : 'h-4 bg-gradient-to-t from-green-800 to-green-500'}`}/>
+                       <div className="w-16 h-3 bg-slate-700 rounded absolute translate-y-3"/>
                     </div>
+
+                    <button onClick={() => handleBollardToggle(selectedSlot)} className={`w-full py-4 rounded-xl font-bold text-xs tracking-widest uppercase transition-all shadow-lg font-sans ${selectedSlot.bollardUp ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500'}`}>
+                      {selectedSlot.bollardUp ? "Lower Bollard" : "Raise Bollard"}
+                    </button>
                   </div>
                 )}
 
-                {selectedSlot.status === "available" && <button onClick={() => handleReserve(selectedSlot)} className="w-full py-4 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold uppercase text-xs tracking-widest shadow-lg">Reserve Now</button>}
+                {selectedSlot.status === "available" && <button onClick={() => handleReserve(selectedSlot)} className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold uppercase text-xs tracking-widest shadow-lg font-sans">Reserve Now</button>}
               </div>
             </div>
           </div>
