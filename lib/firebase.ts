@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase } from "firebase/database";
+import { getDatabase, ref, onValue, set, update } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAXExMaik-LJ9Vc_CcrgeqoD7M6FXzgAx0",
@@ -10,3 +10,21 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
+
+// 🔥 REAL-TIME LISTENER
+export const listenToSlot = (slotId: string, callback: (data: any) => void) => {
+  const slotRef = ref(db, `slots/${slotId}`);
+
+  onValue(slotRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      callback(data);
+    }
+  });
+};
+
+// 🔥 OPTIONAL: update slot (frontend control)
+export const updateSlot = (slotId: string, data: any) => {
+  const slotRef = ref(db, `slots/${slotId}`);
+  return update(slotRef, data);
+};
