@@ -4,14 +4,10 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import {
-  Car, LogOut, MapPin, Clock, CreditCard, QrCode,
-  CheckCircle2, XCircle, RefreshCw, AlertCircle,
-  ChevronDown, ChevronUp, Info, Search, CalendarCheck,
-  Wallet, ScanLine, ArrowUp, ArrowDown, Radio,
-  ShieldCheck, Zap,
+  Car, MapPin
 } from "lucide-react"
 
-import { ref, onValue } from "firebase/database"
+import { ref, onValue, update } from "firebase/database"
 import { db } from "@/lib/firebase"
 
 const ParkingMap = dynamic(() => import("@/components/ParkingMap"), { ssr: false })
@@ -24,11 +20,7 @@ interface ParkingSlot {
   status: "available" | "reserved" | "occupied"
   reservedBy?: string
   reservedAt?: number
-  paid?: boolean
-  activeQrToken?: string
-  checkedIn?: boolean
   bollardUp?: boolean
-  activated?: boolean
 }
 
 const LOCATIONS = ["Session Road", "Harrison Road", "SM Baguio", "Cedar Peak", "Mabini"]
@@ -57,17 +49,6 @@ export default function DashboardPage() {
     }))
   }
 
-  // 🔥 PATCH API (kept)
-  const patchApi = async (slotId: number, patch: Partial<ParkingSlot>) => {
-    try {
-      await fetch(`/api/slots/${slotId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      })
-    } catch {}
-  }
-
   // 🔥 REAL-TIME FIREBASE SYNC (MAIN FIX)
   useEffect(() => {
     const userData = localStorage.getItem("surepark_user")
@@ -83,45 +64,27 @@ export default function DashboardPage() {
     const unsubscribe = onValue(slotsRef, (snapshot) => {
       const data = snapshot.val()
       if (data) {
-        const formatted = formatSlots(data)
-        setSlots(formatted)
+        setSlots(formatSlots(data))
       }
     })
 
     return () => unsubscribe()
   }, [router])
 
-  // 🔥 RESERVE
+  // 🔥 RESERVE (DIRECT FIREBASE WRITE)
   const handleReserve = async (slot: ParkingSlot) => {
-    const patch = {
-      status: "reserved" as const,
+    await update(ref(db, `slots/slot${slot.id}`), {
+      status: "reserved",
       reservedBy: user.email,
       reservedAt: Date.now(),
       bollardUp: true,
-    }
-
-    const updated = slots.map((s) =>
-      s.id === slot.id ? { ...s, ...patch } : s
-    )
-
-    setSlots(updated)
-    await patchApi(slot.id, patch)
+    })
   }
 
-  // 🔥 BOLLARD CONTROL
+  // 🔥 BOLLARD CONTROL (DIRECT FIREBASE WRITE)
   const handleBollardToggle = async (slot: ParkingSlot) => {
-    const patch = { bollardUp: !slot.bollardUp }
-
-    const updated = slots.map((s) =>
-      s.id === slot.id ? { ...s, ...patch } : s
-    )
-
-    setSlots(updated)
-
-    await fetch("/api/bollard", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slotId: slot.id, bollardUp: patch.bollardUp }),
+    await update(ref(db, `slots/slot${slot.id}`), {
+      bollardUp: !slot.bollardUp,
     })
   }
 
