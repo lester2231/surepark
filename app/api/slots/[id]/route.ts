@@ -1,16 +1,17 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/firebase"
 import { ref, update } from "firebase/database"
 
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params
     const body = await req.json()
 
     // 🔥 convert 2 → slot2
-    const slotKey = `slot${params.id}`
+    const slotKey = `slot${id}`
 
     await update(ref(db, `slots/${slotKey}`), body)
 
