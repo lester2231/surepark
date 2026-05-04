@@ -4,11 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import {
-  Car, LogOut, MapPin, Clock, CreditCard, QrCode,
-  CheckCircle2, XCircle, RefreshCw, AlertCircle,
-  ChevronDown, ChevronUp, Info, Search, CalendarCheck,
-  Wallet, ScanLine, ArrowUp, ArrowDown, Radio,
-  ShieldCheck, Zap,
+  Car
 } from "lucide-react"
 
 import { ref, onValue, update } from "firebase/database"
@@ -46,7 +42,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [slots, setSlots] = useState<ParkingSlot[]>([])
 
-  // 🔥 REALTIME (REPLACES API)
+  // 🔥 REALTIME SYNC (SAFE)
   useEffect(() => {
     const userData = localStorage.getItem("surepark_user")
     if (!userData) {
@@ -54,7 +50,8 @@ export default function DashboardPage() {
       return
     }
 
-    setUser(JSON.parse(userData))
+    const parsedUser = JSON.parse(userData)
+    setUser(parsedUser)
 
     const slotsRef = ref(db, "slots")
 
@@ -63,24 +60,28 @@ export default function DashboardPage() {
 
       console.log("🔥 Firebase data:", data)
 
-      if (data) {
-        const formatted = Object.entries(data).map(([key, value]: any, index) => ({
-          id: index + 1,
-          name: `Slot ${index + 1}`,
-          location: LOCATIONS[index],
-          price: DEFAULT_SLOTS[index].price,
-          ...value,
-        }))
-
-        setSlots(formatted)
+      if (!data) {
+        setSlots(DEFAULT_SLOTS)
+        return
       }
+
+      const formatted = Object.keys(data).map((key, index) => ({
+        id: index + 1,
+        name: `Slot ${index + 1}`,
+        location: LOCATIONS[index],
+        price: DEFAULT_SLOTS[index].price,
+        ...data[key],
+      }))
+
+      setSlots(formatted)
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [router])
 
-  // 🔥 RESERVE (FIXED)
+  // 🔥 RESERVE (FIXED + SAFE)
   const handleReserve = async (slot: ParkingSlot) => {
+    if (!user) return
     if (slot.status !== "available") return
 
     await update(ref(db, `slots/slot${slot.id}`), {
@@ -91,9 +92,8 @@ export default function DashboardPage() {
     })
   }
 
-  if (!user) return <div>Loading...</div>
+  if (!user) return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>
 
-  // ⚠️ UI BELOW IS UNTOUCHED
   return (
     <div className="min-h-screen bg-slate-900 p-6">
       <h1 className="text-2xl text-white mb-6">SurePark Dashboard</h1>
