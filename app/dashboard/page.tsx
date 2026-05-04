@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import {
@@ -116,10 +116,7 @@ export default function DashboardPage() {
       })
   }, [router])
 
-  // ── poll API every 500 ms so ESP32 sensor changes appear in the UI fast ────
-  const selectedSlotRef = useRef<ParkingSlot | null>(null)
-  selectedSlotRef.current = selectedSlot
-
+  // ── poll API every 3 s so ESP32 changes appear in the UI automatically ────
   useEffect(() => {
     const poll = setInterval(async () => {
       try {
@@ -128,10 +125,9 @@ export default function DashboardPage() {
         setSlots((prev) => {
           if (JSON.stringify(fresh) === JSON.stringify(prev)) return prev
           localStorage.setItem("surepark_slots", JSON.stringify(fresh))
-          // keep selectedSlot in sync without resetting the interval
-          const sel = selectedSlotRef.current
-          if (sel) {
-            const updated = fresh.find((s) => s.id === sel.id)
+          // keep selectedSlot in sync
+          if (selectedSlot) {
+            const updated = fresh.find((s) => s.id === selectedSlot.id)
             if (updated) setSelectedSlot(updated)
           }
           return fresh
@@ -139,10 +135,10 @@ export default function DashboardPage() {
       } catch {
         // server unreachable — stay with local state
       }
-    }, 500)
+    }, 3000)
     return () => clearInterval(poll)
-  // no selectedSlot dependency — we use a ref so the interval never resets
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSlot])
 
   // ── reservation expiry timer ──────────────────────────────────────────────
   useEffect(() => {
@@ -601,13 +597,7 @@ export default function DashboardPage() {
           {filteredSlots.map((slot) => (
             <div
               key={slot.id}
-              className={`rounded-lg p-6 transition-colors border ${
-                slot.status === "available"
-                  ? "bg-slate-800 border-green-700/60 hover:border-green-600"
-                  : slot.status === "reserved"
-                  ? "bg-slate-800 border-yellow-700/60 hover:border-yellow-600"
-                  : "bg-red-950/30 border-red-700/60 hover:border-red-600"
-              }`}
+              className="bg-slate-800 border border-slate-700 rounded-lg p-6 hover:border-slate-600 transition-colors"
             >
               <div className="flex items-start justify-between mb-4">
                 <div>
