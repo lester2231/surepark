@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import {
@@ -10,6 +10,9 @@ import {
   Wallet, ScanLine, ArrowUp, ArrowDown, Radio,
   ShieldCheck, Zap,
 } from "lucide-react"
+
+import { ref, onValue } from "firebase/database"
+import { db } from "@/lib/firebase"
 
 const ParkingMap = dynamic(() => import("@/components/ParkingMap"), { ssr: false })
 
@@ -43,7 +46,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [slots, setSlots] = useState<ParkingSlot[]>([])
 
-  // 🔥 FIX: convert Firebase object → array
+  // 🔥 Convert Firebase object → array
   const formatSlots = (raw: any): ParkingSlot[] => {
     return Object.entries(raw || {}).map(([key, value]: any, index) => ({
       id: index + 1,
@@ -54,6 +57,7 @@ export default function DashboardPage() {
     }))
   }
 
+  // 🔥 PATCH API (kept)
   const patchApi = async (slotId: number, patch: Partial<ParkingSlot>) => {
     try {
       await fetch(`/api/slots/${slotId}`, {
@@ -64,42 +68,30 @@ export default function DashboardPage() {
     } catch {}
   }
 
-  // 🔥 INITIAL LOAD FIXED
+  // 🔥 REAL-TIME FIREBASE SYNC (MAIN FIX)
   useEffect(() => {
     const userData = localStorage.getItem("surepark_user")
     if (!userData) {
       router.push("/login")
       return
     }
+
     setUser(JSON.parse(userData))
 
-    fetch("/api/slots")
-      .then((r) => r.json())
-      .then((data) => {
+    const slotsRef = ref(db, "slots")
+
+    const unsubscribe = onValue(slotsRef, (snapshot) => {
+      const data = snapshot.val()
+      if (data) {
         const formatted = formatSlots(data)
         setSlots(formatted)
-        localStorage.setItem("surepark_slots", JSON.stringify(formatted))
-      })
-      .catch(() => {
-        const saved = localStorage.getItem("surepark_slots")
-        setSlots(saved ? JSON.parse(saved) : DEFAULT_SLOTS)
-      })
+      }
+    })
+
+    return () => unsubscribe()
   }, [router])
 
-  // 🔥 POLLING FIXED
-  useEffect(() => {
-    const poll = setInterval(async () => {
-      try {
-        const res = await fetch("/api/slots", { cache: "no-store" })
-        const raw = await res.json()
-        const fresh = formatSlots(raw)
-        setSlots(fresh)
-      } catch {}
-    }, 500)
-
-    return () => clearInterval(poll)
-  }, [])
-
+  // 🔥 RESERVE
   const handleReserve = async (slot: ParkingSlot) => {
     const patch = {
       status: "reserved" as const,
@@ -108,15 +100,22 @@ export default function DashboardPage() {
       bollardUp: true,
     }
 
-    const updated = slots.map((s) => s.id === slot.id ? { ...s, ...patch } : s)
+    const updated = slots.map((s) =>
+      s.id === slot.id ? { ...s, ...patch } : s
+    )
+
     setSlots(updated)
     await patchApi(slot.id, patch)
   }
 
+  // 🔥 BOLLARD CONTROL
   const handleBollardToggle = async (slot: ParkingSlot) => {
     const patch = { bollardUp: !slot.bollardUp }
 
-    const updated = slots.map((s) => s.id === slot.id ? { ...s, ...patch } : s)
+    const updated = slots.map((s) =>
+      s.id === slot.id ? { ...s, ...patch } : s
+    )
+
     setSlots(updated)
 
     await fetch("/api/bollard", {
