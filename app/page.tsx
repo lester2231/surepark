@@ -7,8 +7,7 @@ import dynamic from "next/dynamic"
 import {
   Car, LogOut, MapPin, Clock, CreditCard, QrCode, CheckCircle2,
   XCircle, RefreshCw, AlertCircle, ChevronDown, ChevronUp, Info,
-  Search, CalendarCheck, Wallet, ScanLine, ArrowUp, ArrowDown,
-  Radio, ShieldCheck, Zap,
+  Search, CalendarCheck, Wallet, Zap, ArrowUp, ArrowDown, Radio, ShieldCheck
 } from "lucide-react"
 
 const ParkingMap = dynamic(() => import("@/components/ParkingMap"), {
@@ -27,7 +26,7 @@ interface ParkingSlot {
   id: number; name: string; location: string; price: number;
   status: "available" | "reserved" | "occupied";
   reservedBy?: string; reservedAt?: number; paid?: boolean;
-  activeQrToken?: string; checkedIn?: boolean; bollardUp?: boolean;
+  activeQrToken?: string; bollardUp?: boolean;
 }
 
 const LOCATIONS = ["Session Road", "Harrison Road", "SM Baguio", "Cedar Peak", "Mabini"]
@@ -46,17 +45,16 @@ export default function DashboardPage() {
   const [selectedLocation, setSelectedLocation] = useState<string>("All")
   const [selectedSlot, setSelectedSlot] = useState<ParkingSlot | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<string>("GCash")
-  const [qrInput, setQrInput] = useState("")
-  const [scanResult, setScanResult] = useState<{ success: boolean; message: string } | null>(null)
   const [showScanner, setShowScanner] = useState(false)
   const [showTips, setShowTips] = useState(true)
 
-  // ── FAST FIREBASE SYNC (KEEP THIS) ──
+  // 1. AUTH & REAL-TIME FIREBASE SYNC
   useEffect(() => {
     const userData = localStorage.getItem("surepark_user")
     if (!userData) { router.push("/login"); return }
     setUser(JSON.parse(userData))
 
+    // Real-time listener: This detects the car instantly when ESP32 updates Firebase
     const unsubscribe = onValue(ref(db, "slots"), (snapshot) => {
       const data = snapshot.val()
       if (!data) { setSlots(DEFAULT_SLOTS); return }
@@ -64,13 +62,14 @@ export default function DashboardPage() {
       const formatted = Object.keys(data).map((key, index) => ({
         id: index + 1,
         name: `Slot ${index + 1}`,
-        location: LOCATIONS[index],
-        price: DEFAULT_SLOTS[index].price,
+        location: LOCATIONS[index] || "Baguio",
+        price: DEFAULT_SLOTS[index]?.price || 50,
         ...data[key],
       }))
 
       setSlots(formatted)
       
+      // Update the modal if it's currently open for a specific slot
       if (selectedSlot) {
         const updated = formatted.find((s) => s.id === selectedSlot.id)
         if (updated) setSelectedSlot(updated)
@@ -80,7 +79,7 @@ export default function DashboardPage() {
     return () => unsubscribe()
   }, [router, selectedSlot?.id])
 
-  // ── ACTIONS ──
+  // 2. ACTIONS (Updating Firebase directly)
   const handleReserve = async (slot: ParkingSlot) => {
     if (!user || slot.status !== "available") return
     await update(ref(db, `slots/slot${slot.id}`), {
@@ -102,8 +101,8 @@ export default function DashboardPage() {
 
   const handleReset = async () => {
     const resetData: any = {}
-    DEFAULT_SLOTS.forEach((s) => {
-      resetData[`slot${s.id}`] = { status: "available", bollardUp: true, paid: false, reservedBy: null }
+    [1,2,3,4,5].forEach((id) => {
+      resetData[`slot${id}`] = { status: "available", bollardUp: true, paid: false, reservedBy: null }
     })
     await update(ref(db, "slots"), resetData)
   }
@@ -126,117 +125,92 @@ export default function DashboardPage() {
   if (!user) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8 text-white">
+    <div className="min-h-screen bg-slate-900 p-4 md:p-8 text-white">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
-              <Car className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">SurePark Baguio</h1>
-              <p className="text-slate-400 text-sm">Active Session: {user.email}</p>
-            </div>
+            <Car className="w-10 h-10 text-blue-500" />
+            <h1 className="text-2xl font-bold">SurePark Dashboard</h1>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setShowScanner(!showScanner)} className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg transition-all">
-              <QrCode className="w-4 h-4" /> Scanner
-            </button>
-            <button onClick={handleReset} className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-all">
-              <RefreshCw className="w-4 h-4" /> Reset
-            </button>
-            <button onClick={() => { localStorage.removeItem("surepark_user"); router.push("/login") }} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-all">
-              <LogOut className="w-4 h-4" /> Logout
-            </button>
+            <button onClick={handleReset} className="px-4 py-2 bg-slate-700 rounded-lg flex items-center gap-2"><RefreshCw size={16}/> Reset</button>
+            <button onClick={() => {localStorage.removeItem("surepark_user"); router.push("/login")}} className="px-4 py-2 bg-red-600 rounded-lg flex items-center gap-2"><LogOut size={16}/> Logout</button>
           </div>
         </div>
 
         {/* Filters and Stats */}
-        <div className="flex flex-col md:flex-row gap-6 mb-8 items-end">
-          <div className="w-full md:w-72">
-            <label className="block text-sm font-medium text-slate-400 mb-2">Filter by Location</label>
-            <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-400" />
-              <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)} className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-3 appearance-none focus:ring-2 focus:ring-blue-500 outline-none">
-                <option value="All">All Locations</option>
-                {LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
-              </select>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-slate-800 p-4 rounded-xl border border-slate-700">
+            <label className="text-xs text-slate-400 uppercase font-bold">Filter Location</label>
+            <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)} className="w-full bg-transparent outline-none mt-1">
+              <option value="All">All Locations</option>
+              {LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
           </div>
-          <div className="flex-1 grid grid-cols-3 gap-4 w-full">
-            <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-xl text-center">
-              <p className="text-xs text-green-400 font-bold uppercase">Available</p>
-              <p className="text-2xl font-bold">{stats.available}</p>
-            </div>
-            <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl text-center">
-              <p className="text-xs text-yellow-400 font-bold uppercase">Reserved</p>
-              <p className="text-2xl font-bold">{stats.reserved}</p>
-            </div>
-            <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-center">
-              <p className="text-xs text-red-400 font-bold uppercase">Occupied</p>
-              <p className="text-2xl font-bold">{stats.occupied}</p>
-            </div>
+          <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-xl text-center">
+            <p className="text-xs text-green-400 font-bold">AVAILABLE: {stats.available}</p>
+          </div>
+          <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl text-center">
+            <p className="text-xs text-yellow-400 font-bold">RESERVED: {stats.reserved}</p>
+          </div>
+          <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl text-center">
+            <p className="text-xs text-red-400 font-bold">OCCUPIED: {stats.occupied}</p>
           </div>
         </div>
 
-        {/* Slot Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        {/* Slots Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {filteredSlots.map((slot) => (
-            <div key={slot.id} className={`bg-slate-800/80 border rounded-2xl p-6 transition-all hover:translate-y-[-4px] ${slot.status === 'available' ? 'border-green-500/30' : slot.status === 'reserved' ? 'border-yellow-500/30' : 'border-red-500/30'}`}>
+            <div key={slot.id} className={`p-6 rounded-2xl border bg-slate-800/50 ${slot.status === 'available' ? 'border-green-500/30' : slot.status === 'reserved' ? 'border-yellow-500/30' : 'border-red-500/30'}`}>
               <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-bold">{slot.name}</h3>
-                  <div className="flex items-center gap-1 text-slate-400 text-sm mt-1"><MapPin size={14}/> {slot.location}</div>
-                </div>
-                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${slot.status === 'available' ? 'bg-green-500/20 text-green-400' : slot.status === 'reserved' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>
-                  {slot.status}
-                </span>
+                <h3 className="text-xl font-bold">{slot.name}</h3>
+                <span className={`px-2 py-1 rounded text-[10px] font-bold ${slot.status === 'available' ? 'bg-green-500/20 text-green-400' : slot.status === 'reserved' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'}`}>{slot.status.toUpperCase()}</span>
               </div>
-              <div className="text-3xl font-bold mb-4">₱{slot.price}<span className="text-sm text-slate-500 font-normal"> /hour</span></div>
+              <p className="text-slate-400 text-sm mb-4">{slot.location}</p>
               <div className="flex gap-2">
-                <button onClick={() => setSelectedSlot(slot)} className="flex-1 bg-slate-700 hover:bg-slate-600 py-2.5 rounded-xl text-sm font-bold transition-all">View</button>
-                {slot.status === 'available' && (
-                  <button onClick={() => handleReserve(slot)} className="flex-1 bg-blue-600 hover:bg-blue-500 py-2.5 rounded-xl text-sm font-bold transition-all">Reserve</button>
-                )}
+                <button onClick={() => setSelectedSlot(slot)} className="flex-1 py-2 bg-slate-700 rounded-lg text-sm">View</button>
+                {slot.status === 'available' && <button onClick={() => handleReserve(slot)} className="flex-1 py-2 bg-blue-600 rounded-lg text-sm">Reserve</button>}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Map Component */}
+        {/* Map */}
         <ParkingMap slots={slots} onLocationClick={setSelectedLocation} selectedLocation={selectedLocation} />
 
-        {/* Modal Logic (Original UI) */}
+        {/* Modal */}
         {selectedSlot && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[2000] flex items-center justify-center p-4">
-            <div className="bg-slate-800 border border-slate-700 rounded-3xl w-full max-w-md overflow-hidden animate-in zoom-in-95">
-              <div className="p-6 border-b border-slate-700 flex justify-between items-center">
-                <h2 className="text-2xl font-bold">{selectedSlot.name} Details</h2>
-                <button onClick={() => setSelectedSlot(null)} className="p-2 hover:bg-slate-700 rounded-full"><XCircle/></button>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[50] flex items-center justify-center p-4">
+            <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold">{selectedSlot.name}</h2>
+                <button onClick={() => setSelectedSlot(null)}><XCircle/></button>
               </div>
-              <div className="p-6 space-y-6">
-                <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl">
-                  <span className="text-slate-400">Status</span>
-                  <span className="font-bold uppercase text-blue-400">{selectedSlot.status}</span>
+              
+              <div className="space-y-4">
+                <div className="bg-slate-900 p-4 rounded-xl flex justify-between">
+                  <span className="text-slate-400">Current Status</span>
+                  <span className="font-bold text-blue-400 uppercase">{selectedSlot.status}</span>
                 </div>
 
+                {selectedSlot.status === 'reserved' && !selectedSlot.paid && selectedSlot.reservedBy === user.email && (
+                  <button onClick={() => handlePayment(selectedSlot)} className="w-full py-4 bg-blue-600 rounded-xl font-bold">Pay ₱{selectedSlot.price}</button>
+                )}
+
                 {selectedSlot.paid && (
-                  <div className="bg-slate-900 p-6 rounded-2xl border border-slate-700">
-                    <div className="flex justify-between items-center mb-6">
-                      <span className="text-slate-400 font-medium">Bollard Control</span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${selectedSlot.bollardUp ? 'bg-red-500' : 'bg-green-500'}`}>
-                        {selectedSlot.bollardUp ? 'RAISED' : 'LOWERED'}
-                      </span>
+                  <div className="p-4 border border-slate-700 rounded-xl space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-400">Bollard Status</span>
+                      <span className={`text-xs font-bold ${selectedSlot.bollardUp ? 'text-red-400' : 'text-green-400'}`}>{selectedSlot.bollardUp ? 'RAISED' : 'LOWERED'}</span>
                     </div>
-                    <button onClick={() => handleBollardToggle(selectedSlot)} className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${selectedSlot.bollardUp ? 'bg-green-600 hover:bg-green-500' : 'bg-red-600 hover:bg-red-500'}`}>
+                    <button onClick={() => handleBollardToggle(selectedSlot)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 ${selectedSlot.bollardUp ? 'bg-green-600' : 'bg-red-600'}`}>
                       {selectedSlot.bollardUp ? <><ArrowDown size={18}/> Lower Bollard</> : <><ArrowUp size={18}/> Raise Bollard</>}
                     </button>
+                    {selectedSlot.status === 'occupied' && (
+                      <p className="text-[10px] text-center text-slate-500 uppercase tracking-widest"><ShieldCheck className="inline w-3 h-3"/> Car Detected by Hardware</p>
+                    )}
                   </div>
-                )}
-                
-                {selectedSlot.status === 'reserved' && !selectedSlot.paid && selectedSlot.reservedBy === user.email && (
-                  <button onClick={() => handlePayment(selectedSlot)} className="w-full bg-blue-600 py-4 rounded-2xl font-bold text-lg">Pay ₱{selectedSlot.price}</button>
                 )}
               </div>
             </div>
